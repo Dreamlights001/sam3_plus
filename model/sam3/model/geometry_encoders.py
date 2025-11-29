@@ -747,28 +747,50 @@ class SequenceGeometryEncoder(nn.Module):
             assert len(img_feats) == len(img_sizes)
             cur_img_feat = img_feats[-1]
             
-            # Check if cur_img_feat is in (B, C, H, W) format (from backbone)
+            # Handle different feature map formats
             if cur_img_feat.dim() == 4:
-                # For backbone output with shape (B, C, H, W)
+                # Format: (B, C, H, W) - typical backbone output
                 B, C, H, W = cur_img_feat.shape
                 
                 # For LayerNorm, we need feature dimension as last dimension
-                # Permute to (B, H, W, C) for LayerNorm
+                cur_img_feat_reshaped = cur_img_feat.permute(0, 2, 3, 1)  # (B, H, W, C)
+                cur_img_feat_reshaped = self.img_pre_norm(cur_img_feat_reshaped)
+                cur_img_feat = cur_img_feat_reshaped.permute(0, 3, 1, 2)  # Back to (B, C, H, W)
+                img_feats = cur_img_feat
+            elif cur_img_feat.dim() == 3:
+                # Format: (C, H, W) - no batch dimension
+                C, H, W = cur_img_feat.shape
+                
+                # Add batch dimension to make it (1, C, H, W)
+                cur_img_feat = cur_img_feat.unsqueeze(0)
+                
+                # For LayerNorm, permute to (1, H, W, C)
                 cur_img_feat_reshaped = cur_img_feat.permute(0, 2, 3, 1)
                 cur_img_feat_reshaped = self.img_pre_norm(cur_img_feat_reshaped)
-                # Permute back to (B, C, H, W)
-                cur_img_feat = cur_img_feat_reshaped.permute(0, 3, 1, 2)
+                cur_img_feat = cur_img_feat_reshaped.permute(0, 3, 1, 2)  # Back to (1, C, H, W)
                 img_feats = cur_img_feat
             else:
                 # Original code path for sequence-first format (H*W, N, C)
-                cur_img_feat = self.img_pre_norm(cur_img_feat)
-                H, W = img_sizes[-1]
-                assert cur_img_feat.shape[0] == H * W
-                N, C = cur_img_feat.shape[-2:]
-                # Put back in NxCxHxW
-                cur_img_feat = cur_img_feat.permute(1, 2, 0)
-                cur_img_feat = cur_img_feat.view(N, C, H, W)
-                img_feats = cur_img_feat
+                # Check if this is actually (C, H, W) format (common mistake)
+                if cur_img_feat.shape[0] == 256:  # If first dim is feature dim
+                    # This is likely (C, H, W) format, not sequence-first
+                    C, H, W = cur_img_feat.shape
+                    
+                    # Add batch dimension and permute for LayerNorm
+                    cur_img_feat = cur_img_feat.unsqueeze(0)  # (1, C, H, W)
+                    cur_img_feat_reshaped = cur_img_feat.permute(0, 2, 3, 1)  # (1, H, W, C)
+                    cur_img_feat_reshaped = self.img_pre_norm(cur_img_feat_reshaped)
+                    cur_img_feat = cur_img_feat_reshaped.permute(0, 3, 1, 2)  # (1, C, H, W)
+                    img_feats = cur_img_feat
+                else:
+                    # Original sequence-first handling
+                    cur_img_feat = self.img_pre_norm(cur_img_feat)
+                    H, W = img_sizes[-1]
+                    assert cur_img_feat.shape[0] == H * W
+                    N, C = cur_img_feat.shape[-2:]
+                    cur_img_feat = cur_img_feat.permute(1, 2, 0)
+                    cur_img_feat = cur_img_feat.view(N, C, H, W)
+                    img_feats = cur_img_feat
 
         if self.encode_boxes_as_points:
             assert boxes is not None
