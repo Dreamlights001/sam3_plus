@@ -736,6 +736,24 @@ class SequenceGeometryEncoder(nn.Module):
         masks = geo_prompt.mask_embeddings
         masks_mask = geo_prompt.mask_mask
         masks_labels = geo_prompt.mask_labels
+        
+        # Handle null prompt case (all geometric prompts are None)
+        if points is None and boxes is None and masks is None:
+            # Create dummy embeddings and mask
+            device = img_feats[-1].device if img_feats else torch.device('cpu')
+            bs = 1  # Assume batch size 1 for dummy prompt
+            
+            # Create dummy CLS embedding if we use CLS
+            if self.cls_embed is not None:
+                dummy_embeds = self.cls_embed.weight.view(1, 1, self.d_model).repeat(1, bs, 1)
+                dummy_mask = torch.zeros(bs, 1, device=device, dtype=torch.bool)
+            else:
+                # Create empty embeddings and mask
+                dummy_embeds = torch.zeros(0, bs, self.d_model, device=device)
+                dummy_mask = torch.zeros(bs, 0, device=device, dtype=torch.bool)
+            
+            return dummy_embeds, dummy_mask
+        
         seq_first_img_feats = img_feats[-1]  # [H*W, B, C]
         seq_first_img_pos_embeds = (
             img_pos_embeds[-1]
