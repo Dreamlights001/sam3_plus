@@ -78,66 +78,68 @@ def test_category(category, dataset_name, dataset_path, detector, prompt_generat
     y_score_pixels = []
     
     # Iterate over test set
-    for i, (images, labels, gts, categories, img_paths) in enumerate(dataloader):
-        for j in range(len(images)):
-            # Get image, label, gt, and path
-            img_path = img_paths[j]
-            label = labels[j].item()
-            gt = gts[j].numpy() if gts[j] is not None else np.zeros((images[j].shape[1], images[j].shape[2]))
+    for i, (image, label, gt, category_name, img_path) in enumerate(dataloader):
+        # Get image, label, gt, and path (now single sample, not batch)
+        
+        print(f"Processing image {i + 1}/{len(dataset)}: {os.path.basename(img_path)}")
+        
+        # Generate prompts
+        prompts = prompt_generator.get_prompts_for_inference(
+            dataset_name, 
+            category, 
+            args.prompt_strategy, 
+            args.num_prompts
+        )
+        
+        # Load image (using the path from the dataset)
+        image = Image.open(img_path).convert("RGB")
+        
+        # Detect anomalies
+        results = detector.detect_anomaly(
+            image, 
+            text_prompts=prompts,
+            confidence_threshold=args.confidence_threshold,
+            iou_threshold=args.iou_threshold
+        )
+        
+        # Calculate image-level score
+        if results["scores"]:
+            img_score = max(results["scores"])
+        else:
+            img_score = 0.0
+        
+        # Generate pixel-level score map
+        anomaly_mask = detector.get_anomaly_mask(results, image.size)
+        score_map = anomaly_mask.astype(np.float32)
+        
+        # Convert gt to numpy array if it's a PIL Image
+        if isinstance(gt, Image.Image):
+            gt = np.array(gt)
+        elif gt is None:
+            gt = np.zeros((image.size[1], image.size[0]), dtype=np.uint8)
+        
+        # Resize score map to match gt size
+        gt_size = gt.shape[:2]
+        if score_map.shape != gt_size:
+            score_map = np.array(Image.fromarray(score_map).resize(gt_size[::-1], Image.LANCZOS))
+        
+        # Append to lists for metrics
+        y_true_images.append(label)
+        y_score_images.append(img_score)
+        y_true_pixels.append(gt)
+        y_score_pixels.append(score_map)
+        
+        # Visualize if enabled
+        if args.visualize:
+            visualized_image = detector.visualize_results(image, results)
+            image_name = os.path.basename(img_path)
+            visualized_path = os.path.join(category_output_dir, f"result_{image_name}")
+            visualized_image.save(visualized_path)
             
-            print(f"Processing image {i*args.batch_size + j + 1}/{len(dataset)}: {os.path.basename(img_path)}")
-            
-            # Generate prompts
-            prompts = prompt_generator.get_prompts_for_inference(
-                dataset_name, 
-                category, 
-                args.prompt_strategy, 
-                args.num_prompts
-            )
-            
-            # Load image
-            image = Image.open(img_path).convert("RGB")
-            
-            # Detect anomalies
-            results = detector.detect_anomaly(
-                image, 
-                text_prompts=prompts,
-                confidence_threshold=args.confidence_threshold,
-                iou_threshold=args.iou_threshold
-            )
-            
-            # Calculate image-level score
-            if results["scores"]:
-                img_score = max(results["scores"])
-            else:
-                img_score = 0.0
-            
-            # Generate pixel-level score map
-            anomaly_mask = detector.get_anomaly_mask(results, image.size)
-            score_map = anomaly_mask.astype(np.float32)
-            
-            # Resize score map to match gt size
-            gt_size = gt.shape[:2]
-            if score_map.shape != gt_size:
-                score_map = np.array(Image.fromarray(score_map).resize(gt_size[::-1], Image.LANCZOS))
-            
-            # Append to lists for metrics
-            y_true_images.append(label)
-            y_score_images.append(img_score)
-            y_true_pixels.append(gt)
-            y_score_pixels.append(score_map)
-            
-            # Visualize if enabled
-            if args.visualize:
-                visualized_image = detector.visualize_results(image, results)
-                image_name = os.path.basename(img_path)
-                visualized_path = os.path.join(category_output_dir, f"result_{image_name}")
-                visualized_image.save(visualized_path)
-                
-                # Save anomaly mask
-                mask_image = Image.fromarray(anomaly_mask * 255)
-                mask_path = os.path.join(category_output_dir, f"mask_{image_name}")
-                mask_image.save(mask_path)
+            # Save anomaly mask
+            mask_image = Image.fromarray(anomaly_mask * 255)
+            mask_path = os.path.join(category_output_dir, f"mask_{image_name}")
+            mask_image.save(mask_path)
     
     # Calculate metrics
     metrics = calculate_all_metrics(
