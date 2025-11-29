@@ -8,11 +8,13 @@ import pandas as pd
 
 
 class VisaDataset(Dataset):
+    # Define categories as a class attribute so it can be accessed without instantiating
+    categories = ['candle', 'capsules', 'cashew', 'chewinggum', 'fryum',
+                 'macaroni1', 'macaroni2', 'pcb1', 'pcb2', 'pcb3',
+                 'pcb4', 'pipe_fryum']
+    
     def __init__(self, root, train=True, category=None, fewshot=0, transform=None, gt_target_transform=None):
         super(VisaDataset, self).__init__()
-        self.categories = ['candle', 'capsules', 'cashew', 'chewinggum', 'fryum',
-                            'macaroni1', 'macaroni2', 'pcb1', 'pcb2', 'pcb3',
-                           'pcb4', 'pipe_fryum']
         self.train = train
         self.category = category
         self.fewshot = fewshot

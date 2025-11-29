@@ -8,11 +8,13 @@ import random
 
 
 class MVTecDataset(Dataset):
+    # Define categories as a class attribute so it can be accessed without instantiating
+    categories = ['carpet', 'grid', 'leather','tile',  'wood',
+                  'bottle', 'cable', 'capsule', 'hazelnut', 'metal_nut',
+                  'pill', 'screw', 'toothbrush', 'transistor', 'zipper']
+    
     def __init__(self, root, train=True, category=None, fewshot=0, transform=None, gt_target_transform=None):
         super(MVTecDataset, self).__init__()
-        self.categories = ['carpet', 'grid', 'leather','tile',  'wood',
-                           'bottle', 'cable', 'capsule', 'hazelnut', 'metal_nut',
-                           'pill', 'screw', 'toothbrush', 'transistor', 'zipper']
 
         self.train = train
         self.category = category
