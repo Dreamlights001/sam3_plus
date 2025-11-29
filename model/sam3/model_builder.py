@@ -316,6 +316,29 @@ def _create_sam3_model(
 
 def _create_text_encoder(bpe_path: str) -> VETextEncoder:
     """Create SAM3 text encoder."""
+    # Check if we're using Hugging Face format tokenizer files
+    model_dir = os.path.dirname(bpe_path) if not bpe_path.endswith('.gz') else os.path.dirname(os.path.dirname(bpe_path))
+    tokenizer_json_path = os.path.join(model_dir, 'tokenizer.json')
+    vocab_json_path = os.path.join(model_dir, 'vocab.json')
+    
+    if os.path.exists(tokenizer_json_path) and os.path.exists(vocab_json_path):
+        # Use Hugging Face tokenizer if available
+        print(f"📝 Using Hugging Face tokenizer from {model_dir}")
+        try:
+            from transformers import AutoTokenizer
+            tokenizer = AutoTokenizer.from_pretrained(model_dir)
+            return VETextEncoder(
+                tokenizer=tokenizer,
+                d_model=256,
+                width=1024,
+                heads=16,
+                layers=24,
+            )
+        except Exception as e:
+            print(f"⚠️  Failed to use Hugging Face tokenizer: {e}")
+            print("   Falling back to SimpleTokenizer")
+    
+    # Fallback to SimpleTokenizer
     tokenizer = SimpleTokenizer(bpe_path=bpe_path)
     return VETextEncoder(
         tokenizer=tokenizer,
@@ -410,22 +433,56 @@ def build_sam3_image_model(
     Returns:
         A SAM3 image model
     """
+    # Check if checkpoint_path is a directory, if so, use it as the model directory
+    model_dir = None
+    if checkpoint_path and os.path.isdir(checkpoint_path):
+        model_dir = checkpoint_path
+    elif checkpoint_path:
+        model_dir = os.path.dirname(checkpoint_path)
+    
+    # If bpe_path is not provided, check if we have Hugging Face tokenizer files in model_dir
     if bpe_path is None:
-        # Try to download BPE vocab from Hugging Face Hub if not provided
-        try:
-            from huggingface_hub import hf_hub_download
-            bpe_path = hf_hub_download(
-                repo_id="facebook/sam3",
-                filename="bpe_simple_vocab_16e6.txt.gz",
-                cache_dir="./model/assets"
-            )
-        except Exception as e:
-            # Fallback to default path
-            bpe_path = os.path.join(
-                os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
-            )
-            # Create assets directory if it doesn't exist
-            os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
+        if model_dir:
+            # Check if we have Hugging Face tokenizer files
+            tokenizer_json_path = os.path.join(model_dir, 'tokenizer.json')
+            vocab_json_path = os.path.join(model_dir, 'vocab.json')
+            if os.path.exists(tokenizer_json_path) and os.path.exists(vocab_json_path):
+                # We have Hugging Face tokenizer files, no need for bpe_path
+                print(f"📝 Found Hugging Face tokenizer files in {model_dir}")
+                # Set a dummy bpe_path since we'll use Hugging Face tokenizer
+                bpe_path = model_dir
+            else:
+                # Try to download BPE vocab from Hugging Face Hub if not provided
+                try:
+                    from huggingface_hub import hf_hub_download
+                    bpe_path = hf_hub_download(
+                        repo_id="facebook/sam3",
+                        filename="bpe_simple_vocab_16e6.txt.gz",
+                        cache_dir="./model/assets"
+                    )
+                except Exception as e:
+                    # Fallback to default path
+                    bpe_path = os.path.join(
+                        os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
+                    )
+                    # Create assets directory if it doesn't exist
+                    os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
+        else:
+            # No model_dir, try to download BPE vocab
+            try:
+                from huggingface_hub import hf_hub_download
+                bpe_path = hf_hub_download(
+                    repo_id="facebook/sam3",
+                    filename="bpe_simple_vocab_16e6.txt.gz",
+                    cache_dir="./model/assets"
+                )
+            except Exception as e:
+                # Fallback to default path
+                bpe_path = os.path.join(
+                    os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
+                )
+                # Create assets directory if it doesn't exist
+                os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
     # Create visual components
     compile_mode = "default" if compile else None
     vision_encoder = _create_vision_backbone(
