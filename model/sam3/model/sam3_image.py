@@ -115,8 +115,11 @@ class Sam3Image(torch.nn.Module):
                 torch.nn.ReLU(inplace=True),
                 torch.nn.Linear(int(hidden_dim * o2m_mlp_ratio), hidden_dim),
             )
-            self.o2m_mlp.weight.data.normal_(mean=0.0, std=0.02)
-            self.o2m_mlp.bias.data.zero_()
+            # Initialize weights and biases for each layer in the Sequential
+            for layer in self.o2m_mlp:
+                if isinstance(layer, torch.nn.Linear):
+                    layer.weight.data.normal_(mean=0.0, std=0.02)
+                    layer.bias.data.zero_()
 
         # instance query related
         if self.use_instance_query:
