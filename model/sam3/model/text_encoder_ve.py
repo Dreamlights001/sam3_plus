@@ -293,17 +293,25 @@ class VETextEncoder(nn.Module):
             # no use case for this
             assert input_boxes is None or len(input_boxes) == 0, "not supported"
 
-            # Encode the text
-            tokenized = self.tokenizer(text, context_length=self.context_length).to(
-                device
-            )  # [b, seq_len]
-            text_attention_mask = (tokenized != 0).bool()
+            # Encode the text using Hugging Face tokenizer
+            # Use max_length instead of context_length, and add necessary parameters
+            tokenized = self.tokenizer(
+                text,
+                max_length=self.context_length,
+                padding="max_length",
+                truncation=True,
+                return_tensors="pt"
+            ).to(device)
+            
+            # Get input_ids and attention_mask from the tokenizer output
+            input_ids = tokenized["input_ids"]
+            text_attention_mask = tokenized["attention_mask"]
 
             # manually embed the tokens
             inputs_embeds = self.encoder.token_embedding(
-                tokenized
+                input_ids
             )  # [b, seq_len, d=1024]
-            _, text_memory = self.encoder(tokenized)  # [b, seq_len, d=1024]
+            _, text_memory = self.encoder(input_ids)  # [b, seq_len, d=1024]
 
             assert text_memory.shape[1] == inputs_embeds.shape[1]
             # Invert attention mask because its the opposite in pytorch transformer
