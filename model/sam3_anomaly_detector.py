@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from .sam3.model_builder import build_sam3_image_model as build_sam3_model
 from .sam3.model.sam3_image_processor import Sam3Processor
-
+import cv2
 
 class SAM3AnomalyDetector:
     def __init__(self, model_path, device="cuda", seed=122):
