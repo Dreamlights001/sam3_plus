@@ -33,9 +33,18 @@ class SAM3AnomalyDetector:
         
     def _load_model(self, model_path):
         """Load SAM3 model from checkpoint"""
-        model = build_sam3_model(model_path)
+        # Check if model_path is a directory, if so, use sam3.pt inside it
+        if os.path.isdir(model_path):
+            checkpoint_path = os.path.join(model_path, "sam3.pt")
+        else:
+            checkpoint_path = model_path
+        
+        model = build_sam3_model(
+            checkpoint_path=checkpoint_path,
+            device=self.device,
+            load_from_HF=False  # Don't load from HF if checkpoint_path is provided
+        )
         model.eval()
-        model.to(self.device)
         return model
     
     def process_image(self, image_path):
@@ -105,17 +114,23 @@ class SAM3AnomalyDetector:
     
     def visualize_results(self, image, results, save_path=None):
         """Visualize anomaly detection results"""
-        from sam3.visualization_utils import draw_sam3_results
+        from .sam3.visualization_utils import plot_results
+        import matplotlib.pyplot as plt
         
-        visualized = draw_sam3_results(
-            image=image,
-            masks=results["masks"],
-            boxes=results["boxes"],
-            scores=results["scores"],
-            labels=results["labels"]
-        )
+        # Create a figure and axis
+        fig, ax = plt.subplots(figsize=(12, 8))
+        
+        # Plot the results
+        plot_results(image, results)
+        
+        # Convert the plot to PIL Image
+        fig.canvas.draw()
+        visualized = Image.frombytes('RGB', fig.canvas.get_width_height(), fig.canvas.tostring_rgb())
         
         if save_path:
             visualized.save(save_path)
+        
+        # Close the figure to free memory
+        plt.close(fig)
         
         return visualized

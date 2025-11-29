@@ -73,6 +73,8 @@ pip install -r requirements.txt
 ```bash
 mkdir -p ~/autodl-tmp/download
 git clone https://huggingface.co/facebook/sam3 ~/autodl-tmp/download/sam3
+#If your request to access this repo has been rejected by the repo's authors.
+modelscope download --model facebook/sam3 --local_dir /root/autodl-tmp/download/sam3
 ```
 
 ## Usage
