@@ -1,6 +1,6 @@
 # SAM3 Anomaly Detection
 
-A powerful anomaly detection system based on SAM3 (Segment Anything Model 3) with text prompt support for zero-shot anomaly detection on MVTec and VisA datasets.
+A powerful anomaly detection system based on SAM3 (Segment Anything Model 3) with text prompt support for zero-shot anomaly detection on MVTec and VisA datasets, optimized for AutoDL cloud platform deployment.
 
 ## Overview
 
@@ -8,8 +8,10 @@ This project leverages SAM3's capability to perform concept-based segmentation u
 - Zero-shot anomaly detection (no training required on target domain)
 - Text prompt engineering for effective anomaly segmentation
 - Multi-dataset support (MVTec, VisA)
-- Comprehensive evaluation metrics
+- Comprehensive evaluation metrics (AUROC, AP, F1 Score, AUPRO)
 - Visualization of results
+- AutoDL cloud platform optimized configuration
+- Support for text prompts like 'the defect is on metal'
 
 ## Project Structure
 
