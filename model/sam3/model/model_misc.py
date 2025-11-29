@@ -162,30 +162,34 @@ class TransformerWrapper(nn.Module):
         
         Args:
             backbone_out: Output from the backbone containing vision features
-            geometric_prompt_embed: Embedded geometric prompts
+            geometric_prompt_embed: Embedded geometric prompts (tuple of tensors)
             find_input: Text input for grounding
             **kwargs: Additional arguments
             
         Returns:
             Dictionary containing transformer outputs
         """
-        # For grounding, we typically just need to pass through to the decoder
-        # with the appropriate inputs
-        
-        # Get vision features from backbone_out
-        vision_features = backbone_out.get("vision_features", [])
-        vision_pos_enc = backbone_out.get("vision_pos_enc", [])
+        # Determine device from geometric_prompt_embed tuple
+        device = torch.device('cpu')
+        if isinstance(geometric_prompt_embed, tuple):
+            # Try to get device from first tensor in tuple
+            for item in geometric_prompt_embed:
+                if isinstance(item, torch.Tensor):
+                    device = item.device
+                    break
+        elif isinstance(geometric_prompt_embed, torch.Tensor):
+            device = geometric_prompt_embed.device
         
         # Simple implementation that returns dummy outputs for now
         # This will be replaced with proper encoder-decoder logic
         return {
-            "hs": torch.zeros(1, 1, self.num_queries, self.d_model, device=geometric_prompt_embed.device),
-            "memory": torch.zeros(1, 100, self.d_model, device=geometric_prompt_embed.device),
-            "memory_pos": torch.zeros(1, 100, self.d_model, device=geometric_prompt_embed.device),
-            "spatial_shapes": torch.tensor([[72, 72]], device=geometric_prompt_embed.device),
-            "level_start_index": torch.tensor([0], device=geometric_prompt_embed.device),
-            "valid_ratios": torch.ones(1, 1, 2, device=geometric_prompt_embed.device),
-            "reference_points": torch.zeros(1, self.num_queries, 4, device=geometric_prompt_embed.device),
+            "hs": torch.zeros(1, 1, self.num_queries, self.d_model, device=device),
+            "memory": torch.zeros(1, 100, self.d_model, device=device),
+            "memory_pos": torch.zeros(1, 100, self.d_model, device=device),
+            "spatial_shapes": torch.tensor([[72, 72]], device=device),
+            "level_start_index": torch.tensor([0], device=device),
+            "valid_ratios": torch.ones(1, 1, 2, device=device),
+            "reference_points": torch.zeros(1, self.num_queries, 4, device=device),
             "prev_encoder_out": None,
         }
 
