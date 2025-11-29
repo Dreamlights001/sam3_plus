@@ -316,7 +316,7 @@ class SAM3AnomalyDetector:
         return results
     
     def visualize_results(self, image, results, output_path=None):
-        """可视化检测结果，修复坐标系显示问题"""
+        """可视化检测结果，修复坐标系显示问题并返回PIL Image对象"""
         import matplotlib.pyplot as plt
         from matplotlib.patches import Rectangle
         from model.sam3.visualization_utils import plot_results
@@ -383,9 +383,16 @@ class SAM3AnomalyDetector:
             os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
             plt.tight_layout()
             plt.savefig(output_path, bbox_inches='tight')
-            plt.close()
         else:
             plt.tight_layout()
-            plt.show()
         
-        return output_path
+        # 将matplotlib图形转换为PIL Image对象
+        fig.canvas.draw()
+        buf = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        buf = buf.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        pil_image = Image.fromarray(buf)
+        
+        # 清理
+        plt.close(fig)
+        
+        return pil_image
