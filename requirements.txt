@@ -1,0 +1,75 @@
+# ==========================================
+# 核心环境 (System Core)
+# Python >= 3.12
+# CUDA >= 12.6
+# ==========================================
+
+# --- 基础科学计算库 ---
+# SAM3 官方严格要求
+numpy==1.26.4          # 锁定 1.x 的最后一个稳定版，避免 2.0 的兼容性破坏
+timm==1.0.17           # 官方指定版本
+ftfy==6.1.1            # 官方指定版本
+iopath==0.1.10         # 官方指定版本
+einops==0.8.1          # 用于张量操作
+
+# --- PyTorch 核心 (请先手动安装) ---
+# 请勿直接 pip install 这些，建议使用官方命令安装，这里列出是为了版本校验
+torch==2.7.0
+torchvision==0.22.0
+torchaudio==2.7.0
+
+# --- 图像处理 (Py3.12 兼容版) ---
+# 必须升级到 10.2+ 才能在 Python 3.12 上运行
+pillow==11.0.0
+# 必须升级以适配 Py3.12 的 wheel 构建
+scikit-image==0.24.0
+# 避免服务器环境下缺少 GL 库的错误
+opencv-python-headless==4.10.0.84
+imageio==2.34.2
+imageio-ffmpeg==0.5.1
+
+# --- 数据处理与绘图 ---
+pandas==2.2.3          # 适配 Python 3.12
+matplotlib==3.9.2      # 适配 Python 3.12
+scikit-learn==1.5.2    # 适配 Python 3.12
+scipy==1.13.1          # 与 scikit-learn 1.5 匹配
+joblib==1.4.2
+
+# --- 深度学习生态 ---
+# 旧版 4.34 不支持 PyTorch 2.7，必须升级
+transformers==4.46.3
+diffusers==0.31.0
+accelerate==0.34.2     # 现代 PyTorch 训练必备
+huggingface_hub==0.26.2
+safetensors==0.4.5
+tokenizers==0.20.3     # 必须与 transformers 4.46 匹配
+
+# --- 工具与配置 ---
+pyyaml==6.0.1          # 必须是 6.0.1 才能在 Py3.12 安装
+regex==2024.9.11
+tqdm==4.66.5
+loguru==0.7.2
+omegaconf==2.3.0
+typing_extensions==4.12.2
+
+# --- 开发工具 ---
+jupyter==1.1.1
+jupyterlab==4.2.5
+notebook==7.2.2
+ipython==8.29.0
+black==24.10.0
+isort==5.13.2
+flake8==7.1.1
+psutil==6.1.0
+
+# --- 可选/特定平台 ---
+# seaborn==0.13.2
+# plotly==5.24.1
+
+# ==========================================
+# SAM 模型安装说明
+# ==========================================
+# 注意：PyPI 上的 'segment-anything==1.0' 是 2023 年的 SAM1。
+# 在跑 SAM3，通常它是基于 SAM2 修改的。但是该任务只用到了其中的图像分割部分，不需要处理带时间序列的视频。
+
+

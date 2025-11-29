@@ -1,0 +1,37 @@
+# Main configuration file for SAM3 Anomaly Detection
+
+# General settings
+seed: 122
+device: cuda
+output_dir: ./outputs
+
+# Model settings
+model:
+  path: ~/autodl-tmp/download/sam3
+  confidence_threshold: 0.5
+  iou_threshold: 0.5
+
+# Prompt settings
+prompt:
+  strategy: mixed  # base, category, mixed, contextual
+  num_prompts: 8
+  base_prompts: ["anomaly", "defect", "damage", "irregularity", "abnormality", "fault", "blemish", "imperfection"]
+  contextual: true
+
+# Dataset settings
+dataset:
+  root: ~/autodl-tmp/datasets
+  name: mvtec  # mvtec, visa
+  category: carpet
+  batch_size: 1
+
+# Evaluation settings
+eval:
+  metrics: ["image_level_auroc", "pixel_level_auroc", "pixel_level_aupro", "image_level_ap", "pixel_level_ap", "image_level_f1", "pixel_level_f1"]
+  threshold: 0.5
+
+# Visualization settings
+visualize:
+  save_results: true
+  save_masks: true
+  save_overlay: true
