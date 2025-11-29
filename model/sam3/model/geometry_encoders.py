@@ -746,14 +746,29 @@ class SequenceGeometryEncoder(nn.Module):
         if self.points_pool_project or self.boxes_pool_project:
             assert len(img_feats) == len(img_sizes)
             cur_img_feat = img_feats[-1]
-            cur_img_feat = self.img_pre_norm(cur_img_feat)
-            H, W = img_sizes[-1]
-            assert cur_img_feat.shape[0] == H * W
-            N, C = cur_img_feat.shape[-2:]
-            # Put back in NxCxHxW
-            cur_img_feat = cur_img_feat.permute(1, 2, 0)
-            cur_img_feat = cur_img_feat.view(N, C, H, W)
-            img_feats = cur_img_feat
+            
+            # Check if cur_img_feat is in (B, C, H, W) format (from backbone)
+            if cur_img_feat.dim() == 4:
+                # For backbone output with shape (B, C, H, W)
+                B, C, H, W = cur_img_feat.shape
+                
+                # For LayerNorm, we need feature dimension as last dimension
+                # Permute to (B, H, W, C) for LayerNorm
+                cur_img_feat_reshaped = cur_img_feat.permute(0, 2, 3, 1)
+                cur_img_feat_reshaped = self.img_pre_norm(cur_img_feat_reshaped)
+                # Permute back to (B, C, H, W)
+                cur_img_feat = cur_img_feat_reshaped.permute(0, 3, 1, 2)
+                img_feats = cur_img_feat
+            else:
+                # Original code path for sequence-first format (H*W, N, C)
+                cur_img_feat = self.img_pre_norm(cur_img_feat)
+                H, W = img_sizes[-1]
+                assert cur_img_feat.shape[0] == H * W
+                N, C = cur_img_feat.shape[-2:]
+                # Put back in NxCxHxW
+                cur_img_feat = cur_img_feat.permute(1, 2, 0)
+                cur_img_feat = cur_img_feat.view(N, C, H, W)
+                img_feats = cur_img_feat
 
         if self.encode_boxes_as_points:
             assert boxes is not None
