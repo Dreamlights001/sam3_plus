@@ -1,5 +1,10 @@
 """Test script for SAM3 Anomaly Detection"""
+import sys
 import os
+
+# Add the project root directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import numpy as np
 import torch
