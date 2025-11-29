@@ -151,8 +151,31 @@ class Sam3Image(torch.nn.Module):
         if "memory" in backbone_out and backbone_out["memory"] is not None:
             backbone_out["memory"] = backbone_out["memory"] + self.no_mem_embed.weight[0]
 
-        # Process geometric prompts
-        geometric_prompt_embed = self.input_geometry_encoder(geometric_prompt)
+        # Get vision features and sizes from backbone_out
+        img_feats = backbone_out.get("vision_features", [])
+        img_pos_embeds = backbone_out.get("vision_pos_enc", [])
+        
+        # Calculate image sizes from the first feature map
+        img_sizes = []
+        for feat in img_feats:
+            if feat is not None:
+                # Get spatial dimensions (H, W) from feature map shape
+                # Assuming feat shape is (B, C, H, W)
+                H, W = feat.shape[-2:]
+                img_sizes.append((H, W))
+        
+        # If no img_sizes were calculated, use dummy values
+        if not img_sizes:
+            img_sizes = [(1, 1)]
+            img_feats = [torch.zeros(1, 256, 1, 1, device=self.device)]
+        
+        # Process geometric prompts with required parameters
+        geometric_prompt_embed = self.input_geometry_encoder(
+            geometric_prompt, 
+            img_feats, 
+            img_sizes, 
+            img_pos_embeds
+        )
 
         # Run transformer
         transformer_out = self.transformer(
