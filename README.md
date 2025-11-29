@@ -21,9 +21,9 @@ This project leverages SAM3's capability to perform concept-based segmentation u
 │   ├── mvtec.py            # MVTec dataset loader
 │   ├── visa.py             # VisA dataset loader
 │   └── __init__.py
-├── scripts/                # Main scripts
-│   ├── train.py            # Training script (optional fine-tuning)
-│   ├── test.py             # Testing and evaluation script
+├── scripts/                # Legacy scripts (moved to main.py)
+│   ├── train.py            # Legacy training script
+│   ├── test.py             # Legacy testing script
 │   └── demo.py             # Inference demo script
 ├── utils/                  # Utility functions
 │   ├── metrics.py          # Evaluation metrics
@@ -33,10 +33,13 @@ This project leverages SAM3's capability to perform concept-based segmentation u
 │   ├── mvtec.yaml          # MVTec specific config
 │   └── visa.yaml           # VisA specific config
 ├── assets/                 # Example images and results
+├── pic/                    # Directory for storing images and visualizations
+├── weight/                 # Directory for storing model weights
+├── main.py                 # Main entry point (supports train/test modes)
 ├── README.md               # This file
 ├── requirements.txt        # Dependencies
-├── train.sh                # Training script
-└── test.sh                 # Testing script
+├── train.sh                # Training script (uses main.py)
+└── test.sh                 # Testing script (uses main.py)
 ```
 
 ## Installation
@@ -148,6 +151,21 @@ Place your datasets in the specified directory:
     └── ...
 ```
 
+### Using the Main Entry Point (main.py)
+
+The project now uses a unified entry point `main.py` that supports both training and testing modes.
+
+```bash
+# Test a specific category (zero-shot anomaly detection)
+python main.py --mode test --dataset mvtec --category bottle --visualize true
+
+# Test all categories in a dataset (new feature)
+python main.py --mode test --dataset mvtec --visualize true
+
+# Basic training
+python main.py --mode train --dataset mvtec --category bottle
+```
+
 ### Demo Inference
 
 Run the demo script on a single image or directory:
@@ -168,58 +186,70 @@ python scripts/demo.py \
     --output_dir ./outputs
 ```
 
-### Testing
+### Testing (Zero-shot Anomaly Detection)
 
-Evaluate the model on a dataset:
+For zero-shot anomaly detection, you don't need to train. Just run the test script:
 
 ```bash
-python scripts/test.py \
-    --dataset mvtec \
-    --dataset_path ~/autodl-tmp/datasets \
-    --model_path ~/autodl-tmp/download/sam3 \
-    --output_dir ./test_results \
-    --prompt_strategy mixed \
-    --visualize
+# Run test on specific category of MVTec dataset
+./test.sh --dataset mvtec --category bottle --visualize true
 
-# On AutoDL platform
-python scripts/test.py \
-    --dataset mvtec \
-    --dataset_path ~/autodl-tmp/datasets \
-    --model_path ~/autodl-tmp/download/sam3 \
-    --output_dir ./test_results \
-    --prompt_strategy mixed \
-    --visualize
+# Run test on specific category of VisA dataset
+./test.sh --dataset visa --category candle --visualize true
+
+# Run test on all categories in a dataset (default behavior when no category specified)
+./test.sh --dataset mvtec --visualize true
+```
+
+#### Test Results Output
+
+When testing with multiple categories:
+
+- **Category-level metrics** are saved in respective category directories under the output directory
+- **Overall average metrics** across all categories are saved in `average_metrics.txt` at the root of the output directory
+- Each category directory contains detailed evaluation results and visualizations (if enabled)
+
+#### Example Output Structure
+
+```
+./test_results/
+├── bottle/
+│   ├── metrics.txt         # Category-specific metrics
+│   └── result_*.jpg        # Visualized results (if enabled)
+├── cable/
+│   ├── metrics.txt
+│   └── result_*.jpg
+├── ...
+└── average_metrics.txt     # Overall average metrics across all categories
 ```
 
 ### Training (Optional Fine-tuning)
 
-Fine-tune the model on a dataset:
+If you want to fine-tune the system, run the training script:
 
 ```bash
-python scripts/train.py \
-    --dataset mvtec \
-    --dataset_path ~/autodl-tmp/datasets \
-    --model_path ~/autodl-tmp/download/sam3 \
-    --output_dir ./train_results \
-    --num_epochs 10 \
-    --lr 1e-5
+# Train on specific category
+./train.sh --dataset mvtec --category bottle
 
-# On AutoDL platform
-python scripts/train.py \
-    --dataset mvtec \
-    --dataset_path ~/autodl-tmp/datasets \
-    --model_path ~/autodl-tmp/download/sam3 \
-    --output_dir ./train_results \
-    --num_epochs 10 \
-    --lr 1e-5
+# Train on all categories
+./train.sh --dataset mvtec
+
+# With custom configuration
+./train.sh --dataset mvtec --config configs/custom.yaml
 ```
+
+### Output Directories
+
+- Results are saved in `./train_results/` for training and `./test_results/` for testing
+- Visualizations are stored in the `pic/` directory
+- Model weights are saved in the `weight/` directory
 
 ### Using Configuration Files
 
 You can use YAML configuration files for easier setup:
 
 ```bash
-python scripts/test.py --config configs/mvtec.yaml
+python main.py --mode test --config configs/mvtec.yaml
 ```
 
 ## Prompt Engineering

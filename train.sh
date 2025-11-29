@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Training script for SAM3 Anomaly Detection
+# Training script for SAM3 Anomaly Detection using main.py
 
 # Default parameters
 DATASET="mvtec"
@@ -9,14 +9,11 @@ MODEL_PATH="~/autodl-tmp/download/sam3"
 OUTPUT_DIR="./train_results"
 DEVICE="cuda"
 BATCH_SIZE=1
-NUM_EPOCHS=10
-LR=1e-5
-WEIGHT_DECAY=1e-4
 PROMPT_STRATEGY="mixed"
 NUM_PROMPTS=8
 CATEGORY=""
 SEED=122
-FEWSHOT=0
+CONFIG=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -73,8 +70,8 @@ while [[ $# -gt 0 ]]; do
             SEED=$2
             shift 2
             ;;
-        --fewshot)
-            FEWSHOT=$2
+        --config)
+            CONFIG="--config $2"
             shift 2
             ;;
         *)
@@ -87,19 +84,17 @@ done
 # Create output directory
 mkdir -p "$OUTPUT_DIR"
 
-# Run training
-python scripts/train.py \
+# Run the training script using main.py
+python main.py \
+    --mode train \
     --dataset "$DATASET" \
     --dataset_path "$DATASET_PATH" \
     --model_path "$MODEL_PATH" \
     --output_dir "$OUTPUT_DIR" \
     --device "$DEVICE" \
     --batch_size $BATCH_SIZE \
-    --num_epochs $NUM_EPOCHS \
-    --lr $LR \
-    --weight_decay $WEIGHT_DECAY \
     --prompt_strategy "$PROMPT_STRATEGY" \
     --num_prompts $NUM_PROMPTS \
     --category "$CATEGORY" \
     --seed $SEED \
-    --fewshot $FEWSHOT
+    $CONFIG
