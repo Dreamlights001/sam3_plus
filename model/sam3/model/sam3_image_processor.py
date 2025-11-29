@@ -192,7 +192,15 @@ class Sam3Processor:
         out_logits = outputs["pred_logits"]
         out_masks = outputs["pred_masks"]
         out_probs = out_logits.sigmoid()
-        presence_score = outputs["presence_logit_dec"].sigmoid().unsqueeze(1)
+        # 检查presence_logit_dec键是否存在，如果不存在则使用默认值1.0
+        if "presence_logit_dec" in outputs:
+            presence_score = outputs["presence_logit_dec"].sigmoid().unsqueeze(1)
+            print(f"Found presence_logit_dec, shape: {outputs['presence_logit_dec'].shape}")
+        else:
+            print("presence_logit_dec not found in outputs, using default value 1.0")
+            # 使用默认值1.0，形状与out_probs匹配
+            presence_score = torch.ones_like(out_probs[..., :1])
+        
         out_probs = (out_probs * presence_score).squeeze(-1)
 
         keep = out_probs > self.confidence_threshold

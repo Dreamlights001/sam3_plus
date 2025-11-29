@@ -77,6 +77,59 @@ git clone https://huggingface.co/facebook/sam3 ~/autodl-tmp/download/sam3
 modelscope download --model facebook/sam3 --local_dir /root/autodl-tmp/download/sam3
 ```
 
+## AutoDL Platform Configuration
+
+### Path Configuration
+
+For AutoDL platform, the project is configured to use the following paths:
+
+```
+# Model weights path
+~/autodl-tmp/download/sam3/
+
+# Datasets path
+~/autodl-tmp/datasets/
+  ├── mvtec/
+  └── visa/
+
+# Output directory
+./outputs/  # Relative to project root
+```
+
+### Updating Dataset Path
+
+To update the dataset path configuration:
+
+1. Edit the `dataset_dir.txt` file in the project root:
+
+```bash
+echo "~/autodl-tmp/datasets/" > dataset_dir.txt
+```
+
+2. Alternatively, you can specify the dataset path directly in command line arguments:
+
+```bash
+python scripts/test.py --dataset_path ~/autodl-tmp/datasets/
+```
+
+### Running on AutoDL
+
+```bash
+# Download model weights (first time only)
+mkdir -p ~/autodl-tmp/download
+modelscope download --model facebook/sam3 --local_dir ~/autodl-tmp/download/sam3
+
+# Run demo
+python scripts/demo.py \
+    --image_path ./assets/test_image.jpg \
+    --model_path ~/autodl-tmp/download/sam3 \
+    --output_dir ./outputs
+
+# Run evaluation
+python scripts/test.py \
+    --config configs/mvtec.yaml
+```
+
 ## Usage
 
 ### Dataset Preparation
@@ -107,6 +160,12 @@ python scripts/demo.py \
     --category carpet \
     --prompt_strategy mixed \
     --output_dir ./outputs
+
+# On AutoDL platform
+python scripts/demo.py \
+    --image_path ./assets/test_image.jpg \
+    --model_path ~/autodl-tmp/download/sam3 \
+    --output_dir ./outputs
 ```
 
 ### Testing
@@ -121,6 +180,15 @@ python scripts/test.py \
     --output_dir ./test_results \
     --prompt_strategy mixed \
     --visualize
+
+# On AutoDL platform
+python scripts/test.py \
+    --dataset mvtec \
+    --dataset_path ~/autodl-tmp/datasets \
+    --model_path ~/autodl-tmp/download/sam3 \
+    --output_dir ./test_results \
+    --prompt_strategy mixed \
+    --visualize
 ```
 
 ### Training (Optional Fine-tuning)
@@ -128,6 +196,15 @@ python scripts/test.py \
 Fine-tune the model on a dataset:
 
 ```bash
+python scripts/train.py \
+    --dataset mvtec \
+    --dataset_path ~/autodl-tmp/datasets \
+    --model_path ~/autodl-tmp/download/sam3 \
+    --output_dir ./train_results \
+    --num_epochs 10 \
+    --lr 1e-5
+
+# On AutoDL platform
 python scripts/train.py \
     --dataset mvtec \
     --dataset_path ~/autodl-tmp/datasets \

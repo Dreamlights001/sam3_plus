@@ -100,9 +100,51 @@ class Transformer(nn.Module):
         compile_mode: Optional[str] = None,
         use_act_checkpoint: bool = False,
     ):
-        super().__init__()
-        self.width = width
-        self.layers = layers
+        print("=== Starting Transformer.__init__ ===")
+        print(f"Parameters: width={width}, layers={layers}, heads={heads}, mlp_ratio={mlp_ratio}")
+        
+        try:
+            print("Calling super().__init__()...")
+            super().__init__()
+            print("Superclass initialized successfully")
+            
+            print("Setting basic attributes...")
+            self.width = width
+            self.layers = layers
+            self.heads = heads
+            self.mlp_ratio = mlp_ratio
+            self.ls_init_value = ls_init_value
+            self.act_layer = act_layer
+            self.norm_layer = norm_layer
+            self.compile_mode = compile_mode
+            self.use_act_checkpoint = use_act_checkpoint
+            
+            print("Creating layer norm...")
+            self.norm = norm_layer(width)
+            print("Layer norm created successfully")
+            
+            print(f"Creating {layers} attention blocks...")
+            self.resblocks = nn.ModuleList()
+            for i in range(layers):
+                print(f"Creating attention block {i+1}/{layers}...")
+                block = ResidualAttentionBlock(
+                    d_model=width,
+                    n_head=heads,
+                    mlp_ratio=mlp_ratio,
+                    ls_init_value=ls_init_value,
+                    act_layer=act_layer,
+                    norm_layer=norm_layer,
+                )
+                self.resblocks.append(block)
+                print(f"Attention block {i+1}/{layers} created successfully")
+            
+            print("=== Transformer.__init__ completed successfully ===")
+            
+        except Exception as e:
+            print(f"CRITICAL ERROR in Transformer.__init__: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         self.grad_checkpointing = use_act_checkpoint
         self.resblocks = nn.ModuleList(
             [
@@ -182,7 +224,64 @@ class TextTransformer(nn.Module):
         compile_mode: Optional[str] = None,
         use_act_checkpoint: bool = False,
     ):
-        super().__init__()
+        print("=== Starting TextTransformer.__init__ ===")
+        print(f"Parameters: context_length={context_length}, vocab_size={vocab_size}, width={width}, heads={heads}, layers={layers}")
+        
+        try:
+            print("Calling super().__init__()...")
+            super().__init__()
+            print("Superclass initialized successfully")
+            
+            # 继续记录初始化过程中的每一步
+            print("Setting basic attributes...")
+            self.context_length = context_length
+            self.vocab_size = vocab_size
+            self.width = width
+            self.heads = heads
+            self.layers = layers
+            self.mlp_ratio = mlp_ratio
+            self.ls_init_value = ls_init_value
+            self.output_dim = output_dim
+            self.no_causal_mask = no_causal_mask
+            self.pool_type = pool_type
+            self.proj_bias = proj_bias
+            self.act_layer = act_layer
+            self.norm_layer = norm_layer
+            self.output_tokens = output_tokens
+            self.use_ln_post = use_ln_post
+            self.compile_mode = compile_mode
+            self.use_act_checkpoint = use_act_checkpoint
+            
+            print("Creating token embedding...")
+            self.token_embedding = nn.Embedding(vocab_size, width)
+            print("Token embedding created successfully")
+            
+            print("Creating position embedding...")
+            self.positional_embedding = nn.Parameter(torch.zeros(1, context_length, width))
+            print("Position embedding created successfully")
+            
+            print("Creating transformer...")
+            self.transformer = Transformer(
+                width=width,
+                layers=layers,
+                heads=heads,
+                mlp_ratio=mlp_ratio,
+                ls_init_value=ls_init_value,
+                act_layer=act_layer,
+                norm_layer=norm_layer,
+                compile_mode=compile_mode,
+                use_act_checkpoint=use_act_checkpoint,
+            )
+            print("Transformer created successfully")
+            
+            print("=== TextTransformer.__init__ completed successfully ===")
+            print(f"TextTransformer has attributes: {[attr for attr in dir(self) if not attr.startswith('_')]}")
+            
+        except Exception as e:
+            print(f"CRITICAL ERROR in TextTransformer.__init__: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
         assert pool_type in ("first", "last", "argmax", "none")
         self.output_tokens = output_tokens
         self.num_pos = self.context_length = context_length
@@ -264,24 +363,46 @@ class VETextEncoder(nn.Module):
         compile_mode: Optional[str] = None,
         use_act_checkpoint: bool = True,
     ):
-        super().__init__()
-        self.context_length = context_length
-        self.use_ln_post = use_ln_post
-        self.tokenizer = tokenizer
+        print(f"=== Starting VETextEncoder.__init__ ===")
+        print(f"Parameters: d_model={d_model}, width={width}, heads={heads}, layers={layers}")
+        print(f"Tokenizer type: {type(tokenizer)}")
+        
+        try:
+            super().__init__()
+            print("Superclass initialized successfully")
+            
+            self.context_length = context_length
+            self.use_ln_post = use_ln_post
+            self.tokenizer = tokenizer
+            print("Basic attributes set successfully")
 
-        self.encoder = TextTransformer(
-            context_length=self.context_length,
-            vocab_size=vocab_size,
-            width=width,
-            heads=heads,
-            layers=layers,
-            # we want the tokens, not just the pooled output
-            output_tokens=True,
-            use_ln_post=use_ln_post,
-            compile_mode=compile_mode,
-            use_act_checkpoint=use_act_checkpoint,
-        )
-        self.resizer = nn.Linear(self.encoder.width, d_model)
+            print("Creating TextTransformer encoder...")
+            self.encoder = TextTransformer(
+                context_length=self.context_length,
+                vocab_size=vocab_size,
+                width=width,
+                heads=heads,
+                layers=layers,
+                # we want the tokens, not just the pooled output
+                output_tokens=True,
+                use_ln_post=use_ln_post,
+                compile_mode=compile_mode,
+                use_act_checkpoint=use_act_checkpoint,
+            )
+            print(f"TextTransformer created successfully, type: {type(self.encoder)}")
+            
+            print("Creating resizer layer...")
+            self.resizer = nn.Linear(self.encoder.width, d_model)
+            print(f"Resizer layer created successfully")
+            
+            print("=== VETextEncoder.__init__ completed successfully ===")
+            print(f"VETextEncoder has attributes: {[attr for attr in dir(self) if not attr.startswith('_')]}")
+            
+        except Exception as e:
+            print(f"CRITICAL ERROR in VETextEncoder.__init__: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     def forward(
         self,

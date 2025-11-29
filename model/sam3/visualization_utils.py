@@ -853,25 +853,72 @@ def visualize_prompt_overlay(
     plt.show()
 
 
-def plot_results(img, results):
-    plt.figure(figsize=(12, 8))
-    plt.imshow(img)
-    nb_objects = len(results["scores"])
-    print(f"found {nb_objects} object(s)")
-    for i in range(nb_objects):
-        color = COLORS[i % len(COLORS)]
-        plot_mask(results["masks"][i].squeeze(0).cpu(), color=color)
-        w, h = img.size
-        prob = results["scores"][i].item()
-        plot_bbox(
-            h,
-            w,
-            results["boxes"][i].cpu(),
-            text=f"(id={i}, {prob=:.2f})",
-            box_format="XYXY",
-            color=color,
-            relative_coords=False,
-        )
+def plot_results(ax, results, **kwargs):
+    """在给定的matplotlib轴上绘制检测结果"""
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    # 确保results字典包含必要的键
+    masks = results.get("masks", [])
+    boxes = results.get("boxes", [])
+    scores = results.get("scores", [])
+    labels = results.get("labels", [])
+    
+    # 绘制每个检测结果
+    for i in range(len(scores)):
+        # 绘制mask（如果有）
+        if i < len(masks) and masks[i] is not None:
+            mask = masks[i]
+            # 确保mask是二维数组
+            if len(mask.shape) == 3:
+                mask = mask[:, :, 0]
+            
+            # 检查mask是否全零，如果是则跳过或使用默认颜色
+            if np.count_nonzero(mask) > 0:
+                # 创建一个半透明的彩色mask
+                color = generate_colors()[i % len(generate_colors())]
+                ax.imshow(mask, alpha=0.5, cmap='jet', vmin=0, vmax=1)
+            else:
+                # 全零mask，绘制一个半透明的背景
+                h, w = mask.shape[:2]
+                overlay = np.ones((h, w, 3)) * 0.9  # 非常浅的灰色
+                ax.imshow(overlay, alpha=0.3)
+        
+        # 绘制边界框（如果有）
+        if i < len(boxes) and boxes[i] is not None and len(boxes[i]) > 0:
+            box = boxes[i]
+            if len(box) == 4:  # [x1, y1, x2, y2]
+                x1, y1, x2, y2 = box
+                width = x2 - x1
+                height = y2 - y1
+                
+                # 创建边界框
+                rect = plt.Rectangle(
+                    (x1, y1), width, height, 
+                    fill=False, edgecolor='red', 
+                    linewidth=2, linestyle='-'
+                )
+                ax.add_patch(rect)
+                
+                # 添加置信度分数标签
+                if i < len(scores):
+                    score = scores[i]
+                    label_text = f"Score: {score:.2f}"
+                    if i < len(labels) and labels[i]:
+                        label_text = f"{labels[i]}: {score:.2f}"
+                    
+                    ax.text(
+                        x1, y1 - 5, label_text, 
+                        color='white', fontsize=8, 
+                        bbox=dict(facecolor='red', alpha=0.7, boxstyle='round,pad=0.3')
+                    )
+    
+    # 确保坐标轴正确显示
+    ax.set_aspect('equal')
+    ax.set_xlim(0, ax.get_xlim()[1])
+    ax.set_ylim(ax.get_ylim()[0], 0)  # 反转y轴以匹配图像坐标
+    
+    return ax
 
 
 def single_visualization(img, anns, title):

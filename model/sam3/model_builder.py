@@ -308,39 +308,113 @@ def _create_sam3_model(
 
 
 def _create_text_encoder(bpe_path: str) -> VETextEncoder:
-    """Create SAM3 text encoder."""
-    # Check if bpe_path is a directory containing Hugging Face tokenizer files
-    if os.path.isdir(bpe_path):
-        model_dir = bpe_path
-    else:
-        model_dir = os.path.dirname(bpe_path) if not bpe_path.endswith('.gz') else os.path.dirname(os.path.dirname(bpe_path))
+    """Create SAM3 text encoder with enhanced error handling."""
+    import traceback
+    import sys
     
-    tokenizer_json_path = os.path.join(model_dir, 'tokenizer.json')
-    vocab_json_path = os.path.join(model_dir, 'vocab.json')
+    print(f"=== Starting _create_text_encoder with bpe_path: {bpe_path} ===")
     
-    if os.path.exists(tokenizer_json_path) and os.path.exists(vocab_json_path):
-        # Use Hugging Face tokenizer if available
-        print(f"📝 Using Hugging Face tokenizer from {model_dir}")
-        try:
-            from transformers import AutoTokenizer
-            tokenizer = AutoTokenizer.from_pretrained(model_dir)
-            return VETextEncoder(
-                tokenizer=tokenizer,
-                d_model=256,
-                width=1024,
-                heads=16,
-                layers=24,
-            )
-        except Exception as e:
-            print(f"⚠️  Failed to use Hugging Face tokenizer: {e}")
-            print("   Please ensure transformers library is installed: pip install transformers")
-            raise e
-    else:
-        # No Hugging Face tokenizer files found
-        raise FileNotFoundError(
-            f"No Hugging Face tokenizer files found in {model_dir}. "
-            f"Please ensure the directory contains tokenizer.json and vocab.json files."
-        )
+    try:
+        # Check if bpe_path is a directory containing Hugging Face tokenizer files
+        print(f"Checking if bpe_path is directory: {os.path.isdir(bpe_path)}")
+        if os.path.isdir(bpe_path):
+            model_dir = bpe_path
+        else:
+            model_dir = os.path.dirname(bpe_path) if not bpe_path.endswith('.gz') else os.path.dirname(os.path.dirname(bpe_path))
+        
+        print(f"Using model directory: {model_dir}")
+        
+        # Check directory existence
+        if not os.path.exists(model_dir):
+            print(f"ERROR: Model directory does not exist: {model_dir}")
+            raise FileNotFoundError(f"Model directory does not exist: {model_dir}")
+        
+        # List directory contents for debugging
+        print(f"Contents of model directory:")
+        for item in os.listdir(model_dir):
+            print(f"  - {item}")
+        
+        tokenizer_json_path = os.path.join(model_dir, 'tokenizer.json')
+        vocab_json_path = os.path.join(model_dir, 'vocab.json')
+        
+        print(f"Checking tokenizer files:")
+        print(f"  tokenizer.json: {os.path.exists(tokenizer_json_path)}")
+        print(f"  vocab.json: {os.path.exists(vocab_json_path)}")
+        
+        if os.path.exists(tokenizer_json_path) and os.path.exists(vocab_json_path):
+            # Use Hugging Face tokenizer if available
+            print(f"📝 Found Hugging Face tokenizer files, attempting to use them")
+            
+            # Check if transformers library is installed
+            print("Checking if transformers library is installed...")
+            try:
+                import transformers
+                print(f"Transformers library version: {transformers.__version__}")
+            except ImportError as e:
+                print(f"❌ Transformers library not found: {e}")
+                print("Attempting to install transformers library...")
+                # Try to install transformers if not available
+                try:
+                    import subprocess
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "transformers"])
+                    print("✅ Transformers library installed successfully")
+                    import transformers
+                    print(f"Transformers library version: {transformers.__version__}")
+                except Exception as install_error:
+                    print(f"❌ Failed to install transformers: {install_error}")
+                    raise RuntimeError("Transformers library not found and failed to install. Please install it manually with 'pip install transformers'")
+            
+            # Now try to import AutoTokenizer
+            try:
+                from transformers import AutoTokenizer
+                print("✅ Successfully imported AutoTokenizer")
+                
+                # Attempt to create the tokenizer
+                print(f"Creating tokenizer from directory: {model_dir}")
+                tokenizer = AutoTokenizer.from_pretrained(model_dir)
+                print("✅ Successfully created tokenizer")
+                print(f"Tokenizer type: {type(tokenizer)}")
+                print(f"Tokenizer vocab size: {tokenizer.vocab_size}")
+                
+                # Create VETextEncoder
+                print("Creating VETextEncoder...")
+                text_encoder = VETextEncoder(
+                    tokenizer=tokenizer,
+                    d_model=256,
+                    width=1024,
+                    heads=16,
+                    layers=24,
+                )
+                print("✅ Successfully created VETextEncoder")
+                print(f"Text encoder type: {type(text_encoder)}")
+                
+                print("=== _create_text_encoder completed successfully ===")
+                return text_encoder
+                
+            except Exception as e:
+                print(f"❌ Error creating tokenizer or text encoder: {e}")
+                print("Detailed error:")
+                traceback.print_exc()
+                raise
+        else:
+            # No Hugging Face tokenizer files found
+            missing_files = []
+            if not os.path.exists(tokenizer_json_path):
+                missing_files.append(f"tokenizer.json (expected at {tokenizer_json_path})")
+            if not os.path.exists(vocab_json_path):
+                missing_files.append(f"vocab.json (expected at {vocab_json_path})")
+            
+            error_msg = f"Missing required tokenizer files: {', '.join(missing_files)}"
+            print(f"❌ {error_msg}")
+            raise FileNotFoundError(error_msg)
+            
+    except Exception as e:
+        print(f"CRITICAL ERROR in _create_text_encoder: {e}")
+        print("Full traceback:")
+        traceback.print_exc()
+        raise
+    
+    print("This line should never be reached")
 
 
 def _create_vision_backbone(
@@ -370,36 +444,74 @@ def _create_sam3_transformer(has_presence_token: bool = True) -> TransformerWrap
 
 def _load_checkpoint(model, checkpoint_path):
     """Load model checkpoint from file."""
-    with g_pathmgr.open(checkpoint_path, "rb") as f:
-        ckpt = torch.load(f, map_location="cpu", weights_only=True)
-    if "model" in ckpt and isinstance(ckpt["model"], dict):
-        ckpt = ckpt["model"]
-    sam3_image_ckpt = {
-        k.replace("detector.", ""): v for k, v in ckpt.items() if "detector" in k
-    }
-    if model.inst_interactive_predictor is not None:
-        sam3_image_ckpt.update(
-            {
-                k.replace("tracker.", "inst_interactive_predictor.model."): v
-                for k, v in ckpt.items()
-                if "tracker" in k
-            }
-        )
-    missing_keys, _ = model.load_state_dict(sam3_image_ckpt, strict=False)
-    if len(missing_keys) > 0:
-        print(
-            f"loaded {checkpoint_path} and found "
-            f"missing and/or unexpected keys:\n{missing_keys=}"
-        )
+    try:
+        print(f"Attempting to load checkpoint from: {checkpoint_path}")
+        # Check if file exists
+        if not os.path.exists(checkpoint_path):
+            raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+        
+        # Get file size
+        file_size = os.path.getsize(checkpoint_path) / (1024 * 1024)
+        print(f"Checkpoint file size: {file_size:.2f} MB")
+        
+        with g_pathmgr.open(checkpoint_path, "rb") as f:
+            print("Loading checkpoint file...")
+            ckpt = torch.load(f, map_location="cpu", weights_only=True)
+            print(f"Checkpoint loaded into CPU memory")
+        
+        if "model" in ckpt and isinstance(ckpt["model"], dict):
+            print("Using 'model' key from checkpoint")
+            ckpt = ckpt["model"]
+        
+        sam3_image_ckpt = {
+            k.replace("detector.", ""): v for k, v in ckpt.items() if "detector" in k
+        }
+        
+        if model.inst_interactive_predictor is not None:
+            print("Updating checkpoint for instance interactive predictor")
+            sam3_image_ckpt.update(
+                {
+                    k.replace("tracker.", "inst_interactive_predictor.model."): v
+                    for k, v in ckpt.items()
+                    if "tracker" in k
+                }
+            )
+        
+        missing_keys, _ = model.load_state_dict(sam3_image_ckpt, strict=False)
+        if len(missing_keys) > 0:
+            print(
+                f"Loaded {checkpoint_path} and found "
+                f"missing and/or unexpected keys:\n{missing_keys=}"
+            )
+        print(f"Successfully loaded checkpoint from {checkpoint_path}")
+    except Exception as e:
+        print(f"Failed to load checkpoint: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def _setup_device_and_mode(model, device, eval_mode):
     """Setup model device and evaluation mode."""
-    if device == "cuda":
-        model = model.cuda()
-    if eval_mode:
-        model.eval()
-    return model
+    try:
+        print(f"Moving model to device: {device}")
+        if device == "cuda":
+            model = model.cuda()
+        else:
+            model = model.to(device)
+        print(f"Model successfully moved to {device}")
+        # Set evaluation mode if specified
+        if eval_mode:
+            print("Setting model to evaluation mode")
+            model.eval()
+        else:
+            print("Model in training mode")
+        return model
+    except Exception as e:
+        print(f"Error setting up device and mode: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 def build_sam3_image_model(
