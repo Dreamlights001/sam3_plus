@@ -311,12 +311,10 @@ class SAM3AnomalyDetector:
         # Process each text prompt
         for prompt in text_prompts:
             try:
-                # Set image and prompt
-                self.processor.set_image(img_np)
-                self.processor.set_text_prompt(prompt)
-                
-                # Get results from processor
-                state = self.processor.get_state()
+                # Set image and prompt with proper state handling
+                state = self.processor.set_image(img_np)
+                state = self.processor.set_text_prompt(prompt, state)
+                # The state now contains all results from set_text_prompt
                 
                 # Enhanced mask extraction logic
                 if 'masks' in state and state['masks'] is not None and len(state['masks']) > 0:
