@@ -29,6 +29,7 @@ from .model.vitdet import ViT
 from .model.vl_combiner import SAM3VLBackbone
 
 
+
 # Setup TensorFloat-32 for Ampere GPUs if available
 def _setup_tf32() -> None:
     """Enable TensorFloat-32 for Ampere GPUs if available."""
@@ -220,14 +221,6 @@ def _create_geometry_encoder():
     """Create geometry encoder with all its components."""
     # Create position encoding for geometry encoder
     geo_pos_enc = _create_position_encoding()
-    # Create CX block for fuser
-    cx_block = CXBlock(
-        dim=256,
-        kernel_size=7,
-        padding=3,
-        layer_scale_init_value=1.0e-06,
-        use_dwconv=True,
-    )
     # Create geometry encoder layer
     geo_layer = TransformerEncoderLayer(
         activation="relu",
