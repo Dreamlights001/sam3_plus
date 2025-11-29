@@ -316,8 +316,12 @@ def _create_sam3_model(
 
 def _create_text_encoder(bpe_path: str) -> VETextEncoder:
     """Create SAM3 text encoder."""
-    # Check if we're using Hugging Face format tokenizer files
-    model_dir = os.path.dirname(bpe_path) if not bpe_path.endswith('.gz') else os.path.dirname(os.path.dirname(bpe_path))
+    # Check if bpe_path is a directory containing Hugging Face tokenizer files
+    if os.path.isdir(bpe_path):
+        model_dir = bpe_path
+    else:
+        model_dir = os.path.dirname(bpe_path) if not bpe_path.endswith('.gz') else os.path.dirname(os.path.dirname(bpe_path))
+    
     tokenizer_json_path = os.path.join(model_dir, 'tokenizer.json')
     vocab_json_path = os.path.join(model_dir, 'vocab.json')
     
@@ -336,17 +340,14 @@ def _create_text_encoder(bpe_path: str) -> VETextEncoder:
             )
         except Exception as e:
             print(f"⚠️  Failed to use Hugging Face tokenizer: {e}")
-            print("   Falling back to SimpleTokenizer")
-    
-    # Fallback to SimpleTokenizer
-    tokenizer = SimpleTokenizer(bpe_path=bpe_path)
-    return VETextEncoder(
-        tokenizer=tokenizer,
-        d_model=256,
-        width=1024,
-        heads=16,
-        layers=24,
-    )
+            print("   Please ensure transformers library is installed: pip install transformers")
+            raise e
+    else:
+        # No Hugging Face tokenizer files found
+        raise FileNotFoundError(
+            f"No Hugging Face tokenizer files found in {model_dir}. "
+            f"Please ensure the directory contains tokenizer.json and vocab.json files."
+        )
 
 
 def _create_vision_backbone(
@@ -452,37 +453,15 @@ def build_sam3_image_model(
                 # Set a dummy bpe_path since we'll use Hugging Face tokenizer
                 bpe_path = model_dir
             else:
-                # Try to download BPE vocab from Hugging Face Hub if not provided
-                try:
-                    from huggingface_hub import hf_hub_download
-                    bpe_path = hf_hub_download(
-                        repo_id="facebook/sam3",
-                        filename="bpe_simple_vocab_16e6.txt.gz",
-                        cache_dir="./model/assets"
-                    )
-                except Exception as e:
-                    # Fallback to default path
-                    bpe_path = os.path.join(
-                        os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
-                    )
-                    # Create assets directory if it doesn't exist
-                    os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
+                # No Hugging Face tokenizer files found, raise error
+                raise FileNotFoundError(
+                    f"No tokenizer files found in {model_dir}. Please ensure the directory contains tokenizer.json and vocab.json files."
+                )
         else:
-            # No model_dir, try to download BPE vocab
-            try:
-                from huggingface_hub import hf_hub_download
-                bpe_path = hf_hub_download(
-                    repo_id="facebook/sam3",
-                    filename="bpe_simple_vocab_16e6.txt.gz",
-                    cache_dir="./model/assets"
-                )
-            except Exception as e:
-                # Fallback to default path
-                bpe_path = os.path.join(
-                    os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
-                )
-                # Create assets directory if it doesn't exist
-                os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
+            # No model_dir provided, raise error
+            raise ValueError(
+                "Either bpe_path or a valid model_dir with tokenizer files must be provided."
+            )
     # Create visual components
     compile_mode = "default" if compile else None
     vision_encoder = _create_vision_backbone(
