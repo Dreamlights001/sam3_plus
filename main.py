@@ -271,8 +271,7 @@ def test(args):
     detector = SAM3AnomalyDetector(
         model_path=args.model_path,
         device=args.device,
-        prompt_strategy=args.prompt_strategy,
-        num_prompts=args.num_prompts
+        seed=args.seed
     )
     
     # Initialize prompt generator
