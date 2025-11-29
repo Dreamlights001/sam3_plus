@@ -223,8 +223,9 @@ def test_category(category, args, detector, prompt_generator):
                 visualized_path = os.path.join(category_output_dir, f"result_{image_name}")
                 visualized_image.save(visualized_path)
                 
-                # Save anomaly mask
-                mask_image = Image.fromarray(anomaly_mask * 255)
+                # Save anomaly mask - ensure proper data type conversion
+                mask_array = (anomaly_mask * 255).astype(np.uint8)
+                mask_image = Image.fromarray(mask_array)
                 mask_path = os.path.join(category_output_dir, f"mask_{image_name}")
                 mask_image.save(mask_path)
                 
