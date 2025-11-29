@@ -286,7 +286,7 @@ class SAM3AnomalyDetector:
         
         return anomaly_mask
 
-    def detect_anomaly(self, image, text_prompts=None, confidence_threshold=0.3):
+    def detect_anomaly(self, image, text_prompts=["anomaly", "defect", "damage", "irregularity"], confidence_threshold=0.3):
         """Enhanced anomaly detection using text prompts with optimized mask handling"""
         import numpy as np
         from PIL import Image
@@ -307,6 +307,10 @@ class SAM3AnomalyDetector:
         # Convert image to numpy array for processing
         img_np = np.array(image)
         height, width = img_np.shape[:2]
+        
+        # Ensure text_prompts is not None and not empty
+        if text_prompts is None or len(text_prompts) == 0:
+            text_prompts = ["anomaly", "defect", "damage", "irregularity"]
         
         # Process each text prompt
         for prompt in text_prompts:
