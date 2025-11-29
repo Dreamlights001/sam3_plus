@@ -22,7 +22,7 @@ class AnomalyPromptGenerator:
         # Context-specific prompts for different categories
         self.category_prompts = {
             "mvtec": {
-                "carpet": ["stain", "tear", "hole", "wrinkle"],
+                "carpet": ["stain", "tear", "hole", "wrinkle", "discoloration", "fraying", "pattern irregularity", "edge damage", "pilling", "tuft missing", "uneven surface", "burn mark"],
                 "grid": ["broken line", "missing line", "misalignment"],
                 "leather": ["scratch", "crack", "stain", "hole"],
                 "tile": ["crack", "chip", "stain", "missing piece"],
