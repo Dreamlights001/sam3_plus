@@ -189,11 +189,13 @@ class Sam3Image(torch.nn.Module):
     def _get_dummy_prompt(self):
         """Get dummy geometric prompt."""
         return Prompt(
-            points=None,
-            boxes=None,
-            masks=None,
-            labels=None,
-            points_mask=None,
-            boxes_mask=None,
-            masks_mask=None,
+            point_embeddings=None,
+            box_embeddings=None,
+            mask_embeddings=None,
+            point_labels=None,
+            box_labels=None,
+            mask_labels=None,
+            point_mask=None,
+            box_mask=None,
+            mask_mask=None,
         )
