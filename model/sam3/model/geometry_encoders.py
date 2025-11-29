@@ -740,7 +740,12 @@ class SequenceGeometryEncoder(nn.Module):
         # Handle null prompt case (all geometric prompts are None)
         if points is None and boxes is None and masks is None:
             # Create dummy embeddings and mask
-            device = img_feats[-1].device if img_feats else torch.device('cpu')
+            # Determine device from img_feats
+            if isinstance(img_feats, list):
+                device = img_feats[-1].device if img_feats else torch.device('cpu')
+            else:
+                # img_feats is a tensor
+                device = img_feats.device
             bs = 1  # Assume batch size 1 for dummy prompt
             
             # Create dummy CLS embedding if we use CLS
@@ -754,16 +759,25 @@ class SequenceGeometryEncoder(nn.Module):
             
             return dummy_embeds, dummy_mask
         
-        seq_first_img_feats = img_feats[-1]  # [H*W, B, C]
-        seq_first_img_pos_embeds = (
-            img_pos_embeds[-1]
-            if img_pos_embeds is not None
-            else torch.zeros_like(seq_first_img_feats)
-        )
+        # Handle both list and tensor cases for img_feats
+        if isinstance(img_feats, list):
+            seq_first_img_feats = img_feats[-1]  # [H*W, B, C]
+            seq_first_img_pos_embeds = (
+                img_pos_embeds[-1]
+                if img_pos_embeds is not None
+                else torch.zeros_like(seq_first_img_feats)
+            )
+        else:
+            # img_feats is a tensor, use it directly
+            seq_first_img_feats = img_feats
+            seq_first_img_pos_embeds = (
+                img_pos_embeds
+                if img_pos_embeds is not None
+                else torch.zeros_like(seq_first_img_feats)
+            )
 
         if self.points_pool_project or self.boxes_pool_project:
-            assert len(img_feats) == len(img_sizes)
-            cur_img_feat = img_feats[-1]
+            cur_img_feat = img_feats[-1] if isinstance(img_feats, list) else img_feats
             
             # Handle different feature map formats
             if cur_img_feat.dim() == 4:
@@ -871,7 +885,10 @@ class SequenceGeometryEncoder(nn.Module):
                 mask_labels=masks_labels,
                 img_feats=img_feats,
             )
-            if points.size(0) == boxes.size(0) == 0:
+            # Check if points and boxes are empty before returning masks only
+            points_empty = points is None or points.size(0) == 0
+            boxes_empty = boxes is None or boxes.size(0) == 0
+            if points_empty and boxes_empty:
                 return masks_embed, masks_mask
         bs = final_embeds.shape[1]
         assert final_mask.shape[0] == bs
