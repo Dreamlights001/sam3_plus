@@ -131,6 +131,8 @@ python scripts/demo.py \
 # Run evaluation
 python scripts/test.py \
     --config configs/mvtec.yaml
+    --dataset_path ~/autodl-tmp/datasets/
+    --model_path ~/autodl-tmp/download/sam3
 ```
 
 ## Usage
@@ -153,17 +155,17 @@ Place your datasets in the specified directory:
 
 ### Using the Main Entry Point (main.py)
 
-The project now uses a unified entry point `main.py` that supports both training and testing modes.
+The project now uses a unified entry point `main.py` that supports both training and testing modes. All commands require `--dataset_path` and `--model_path` parameters.
 
 ```bash
 # Test a specific category (zero-shot anomaly detection)
-python main.py --mode test --dataset mvtec --category bottle --visualize true
+python main.py --mode test --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --category bottle --visualize
 
 # Test all categories in a dataset (new feature)
-python main.py --mode test --dataset mvtec --visualize true
+python main.py --mode test --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --visualize
 
 # Basic training
-python main.py --mode train --dataset mvtec --category bottle
+python main.py --mode train --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --category bottle
 ```
 
 ### Demo Inference
@@ -188,17 +190,17 @@ python scripts/demo.py \
 
 ### Testing (Zero-shot Anomaly Detection)
 
-For zero-shot anomaly detection, you don't need to train. Just run the test script:
+For zero-shot anomaly detection, you don't need to train. Just run the test script with all required parameters:
 
 ```bash
 # Run test on specific category of MVTec dataset
-./test.sh --dataset mvtec --category bottle --visualize true
+./test.sh --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --category bottle --visualize
 
 # Run test on specific category of VisA dataset
-./test.sh --dataset visa --category candle --visualize true
+./test.sh --dataset visa --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --category candle --visualize
 
 # Run test on all categories in a dataset (default behavior when no category specified)
-./test.sh --dataset mvtec --visualize true
+./test.sh --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --visualize
 ```
 
 #### Test Results Output
@@ -225,17 +227,17 @@ When testing with multiple categories:
 
 ### Training (Optional Fine-tuning)
 
-If you want to fine-tune the system, run the training script:
+If you want to fine-tune the system, run the training script with all required parameters:
 
 ```bash
 # Train on specific category
-./train.sh --dataset mvtec --category bottle
+./train.sh --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --category bottle
 
 # Train on all categories
-./train.sh --dataset mvtec
+./train.sh --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3
 
 # With custom configuration
-./train.sh --dataset mvtec --config configs/custom.yaml
+./train.sh --dataset mvtec --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3 --config configs/custom.yaml
 ```
 
 ### Output Directories
@@ -246,10 +248,10 @@ If you want to fine-tune the system, run the training script:
 
 ### Using Configuration Files
 
-You can use YAML configuration files for easier setup:
+You can use YAML configuration files for easier setup. Configuration files should include all required parameters:
 
 ```bash
-python main.py --mode test --config configs/mvtec.yaml
+python main.py --mode test --config configs/mvtec.yaml --dataset_path ~/autodl-tmp/datasets/ --model_path ~/autodl-tmp/download/sam3
 ```
 
 ## Prompt Engineering
