@@ -62,9 +62,10 @@ def test_category(category, dataset_name, dataset_path, detector, prompt_generat
     """Test on a specific category"""
     print(f"\n=== Testing category: {category} ===")
     
-    # Create dataset and dataloader
+    # Create dataset and dataloader with batch_size=1 and custom collate to handle PIL images
     dataset = get_dataset(dataset_name, dataset_path, category)
-    dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
+    # Use batch_size=1 and disable batching with custom collate_fn
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=lambda x: x[0])
     
     # Create category output directory
     category_output_dir = os.path.join(args.output_dir, category)
