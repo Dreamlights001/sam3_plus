@@ -126,7 +126,13 @@ class Transformer(nn.Module):
             print(f"Creating {layers} attention blocks...")
             self.resblocks = nn.ModuleList()
             for i in range(layers):
-                print(f"Creating attention block {i+1}/{layers}...")
+                # 单行进度条格式
+                progress = (i + 1) / layers
+                bar_length = 30
+                filled_length = int(bar_length * progress)
+                bar = '█' * filled_length + '-' * (bar_length - filled_length)
+                print(f'\r[{bar}] {i+1}/{layers} ({int(progress*100)}%)', end='', flush=True)
+                
                 block = ResidualAttentionBlock(
                     d_model=width,
                     n_head=heads,
@@ -136,7 +142,7 @@ class Transformer(nn.Module):
                     norm_layer=norm_layer,
                 )
                 self.resblocks.append(block)
-                print(f"Attention block {i+1}/{layers} created successfully")
+            print()  # 换行，确保后续输出在新行
             
             print("=== Transformer.__init__ completed successfully ===")
             
