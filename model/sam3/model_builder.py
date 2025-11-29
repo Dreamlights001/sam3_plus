@@ -411,9 +411,21 @@ def build_sam3_image_model(
         A SAM3 image model
     """
     if bpe_path is None:
-        bpe_path = os.path.join(
-            os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
-        )
+        # Try to download BPE vocab from Hugging Face Hub if not provided
+        try:
+            from huggingface_hub import hf_hub_download
+            bpe_path = hf_hub_download(
+                repo_id="facebook/sam3",
+                filename="bpe_simple_vocab_16e6.txt.gz",
+                cache_dir="./model/assets"
+            )
+        except Exception as e:
+            # Fallback to default path
+            bpe_path = os.path.join(
+                os.path.dirname(__file__), "..", "assets", "bpe_simple_vocab_16e6.txt.gz"
+            )
+            # Create assets directory if it doesn't exist
+            os.makedirs(os.path.dirname(bpe_path), exist_ok=True)
     # Create visual components
     compile_mode = "default" if compile else None
     vision_encoder = _create_vision_backbone(
