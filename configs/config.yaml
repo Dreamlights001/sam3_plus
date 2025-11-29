@@ -22,7 +22,6 @@ prompt:
 dataset:
   root: ~/autodl-tmp/datasets
   name: mvtec  # mvtec, visa
-  category: carpet
   batch_size: 1
 
 # Evaluation settings
