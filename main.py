@@ -185,8 +185,7 @@ def test_category(category, args, detector, prompt_generator):
             results = detector.detect_anomaly(
                 image,
                 text_prompts=prompts,
-                confidence_threshold=getattr(args, 'confidence_threshold', 0.5),
-                iou_threshold=getattr(args, 'iou_threshold', 0.5)
+                conf_threshold=getattr(args, 'confidence_threshold', 0.5)
             )
             
             # Calculate image-level score
